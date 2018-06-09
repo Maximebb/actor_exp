@@ -1,0 +1,6 @@
+C:\Users\Maxime Beaudry\Dev\StatelessActor\StatelessActor\bin\Debug\netcoreapp2.0\StatelessActor.deps.json
+C:\Users\Maxime Beaudry\Dev\StatelessActor\StatelessActor\bin\Debug\netcoreapp2.0\StatelessActor.dll
+C:\Users\Maxime Beaudry\Dev\StatelessActor\StatelessActor\obj\Debug\netcoreapp2.0\StatelessActor.fsprojAssemblyReference.cache
+C:\Users\Maxime Beaudry\Dev\StatelessActor\StatelessActor\bin\Debug\netcoreapp2.0\StatelessActor.pdb
+C:\Users\Maxime Beaudry\Dev\StatelessActor\StatelessActor\obj\Debug\netcoreapp2.0\StatelessActor.dll
+C:\Users\Maxime Beaudry\Dev\StatelessActor\StatelessActor\obj\Debug\netcoreapp2.0\StatelessActor.pdb
