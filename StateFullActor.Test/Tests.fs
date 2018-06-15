@@ -80,7 +80,7 @@ let ``Actor receives multiple messages`` () =
     Assert.False receivedWrongMessage
 
 [<Fact>]
-let ``Actor notifies supervisor of execution result after processing - Success`` () =
+let ``Actor notifies supervisor of execution result after processing - Disposed`` () =
     let mutable received = false
     let handler (state : TestState) (message : TestMessages) =
         received <- true
@@ -104,5 +104,91 @@ let ``Actor notifies supervisor of execution result after processing - Success``
 
     Assert.True received
     Assert.True ( match executionResult with
-                  | Stopped reason -> true
+                  | Disposed finalState -> if finalState.Received.Length = 1 then true else false
                   | _ -> false )
+
+
+[<Fact>]
+let ``Actor notifies supervisor of execution result after processing - Crashed`` () =
+    let mutable received = false
+    let handler (state : TestState) (message : TestMessages) =
+        received <- true
+        Async.Sleep 1000
+        |> Async.RunSynchronously
+        failwith "Test"
+        { state with Received = message :: state.Received }
+    
+    let (actor, supervisor) = initActorWithHandler handler
+
+    actor.SendAsync TestMessages.A CancellationToken.None
+    |> Async.AwaitTask
+    |> Async.RunSynchronously
+
+    Async.Sleep 1100
+    |> Async.RunSynchronously
+
+    actor.Dispose ()
+
+    let executionResult = 
+        supervisor.Reader.ReadAsync( CancellationToken.None ).AsTask()
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+
+    Assert.True received
+    Assert.True ( match executionResult with
+                  | Crashed _ -> true
+                  | _ -> false )
+
+[<Fact>]
+let ``Actor notifies supervisor of execution result after processing - Stopped`` () =
+    let mutable received = false
+    let handler (state : TestState) (message : TestMessages) =
+        received <- true
+        { state with Received = message :: state.Received }
+    
+    let (actor, supervisor) = initActorWithHandler handler
+
+    let t =
+        actor.SendAsync TestMessages.A CancellationToken.None
+        |> Async.AwaitTask
+    Async.RunSynchronously( t, 1000 )
+
+    Async.Sleep 1000
+    |> Async.RunSynchronously
+
+    let t = 
+        actor.Stop ()
+        |> Async.AwaitTask
+    Async.RunSynchronously( t, 1000 )
+
+    let executionResult = 
+        supervisor.Reader.ReadAsync( CancellationToken.None ).AsTask()
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+
+    Assert.True received
+    Assert.True ( match executionResult with
+                  | Stopped _ -> true
+                  | _ -> false )
+
+[<Fact>]
+let ``Actor ping`` () =
+    let mutable received = false
+    let handler (state : TestState) (message : TestMessages) =
+        received <- true
+        { state with Received = message :: state.Received }
+    
+    let (actor, _) = initActorWithHandler handler
+
+    actor.SendAsync TestMessages.A CancellationToken.None
+    |> Async.AwaitTask
+    |> Async.RunSynchronously
+
+    let pingTask =
+        actor.Ping ()
+        |> Async.AwaitTask
+        |> Async.Ignore
+    
+    Async.RunSynchronously(pingTask, 1000)
+
+    Assert.True received
