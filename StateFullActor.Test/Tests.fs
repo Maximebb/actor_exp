@@ -175,6 +175,7 @@ let ``Actor notifies supervisor of execution result after processing - Stopped``
 let ``Actor ping`` () =
     let mutable received = false
     let handler (state : TestState) (message : TestMessages) =
+        
         received <- true
         { state with Received = message :: state.Received }
     
@@ -183,12 +184,79 @@ let ``Actor ping`` () =
     actor.SendAsync TestMessages.A CancellationToken.None
     |> Async.AwaitTask
     |> Async.RunSynchronously
+    
+    actor.Ping ()
+    |> Async.AwaitTask
+    |> Async.Ignore
+    |> Async.RunSynchronously
 
-    let pingTask =
+    Assert.True received
+
+[<Fact>]
+let ``Actor ping - multiple messages sent and ping responds in between messages`` () =
+    let mutable received = false
+    let mutable amountReceived = 0
+    let handler (state : TestState) (message : TestMessages) =
+        amountReceived <- amountReceived + 1
+        if amountReceived = 7 then received <- true
+        { state with Received = message :: state.Received }
+    
+    let (actor, _) = initActorWithHandler handler
+
+    actor.SendAsync TestMessages.A CancellationToken.None
+    |> Async.AwaitTask
+    |> Async.RunSynchronously
+
+    actor.SendAsync TestMessages.A CancellationToken.None
+    |> Async.AwaitTask
+    |> Async.RunSynchronously
+
+    actor.SendAsync TestMessages.A CancellationToken.None
+    |> Async.AwaitTask
+    |> Async.RunSynchronously
+
+    let pingTask1 =
         actor.Ping ()
         |> Async.AwaitTask
         |> Async.Ignore
-    
-    Async.RunSynchronously(pingTask, 1000)
+
+    actor.SendAsync TestMessages.A CancellationToken.None
+    |> Async.AwaitTask
+    |> Async.RunSynchronously
+
+    let pingTask2 =
+        actor.Ping ()
+        |> Async.AwaitTask
+        |> Async.Ignore
+
+    actor.SendAsync TestMessages.A CancellationToken.None
+    |> Async.AwaitTask
+    |> Async.RunSynchronously
+
+    let pingTask3 =
+        actor.Ping ()
+        |> Async.AwaitTask
+        |> Async.Ignore
+    actor.SendAsync TestMessages.A CancellationToken.None
+    |> Async.AwaitTask
+    |> Async.RunSynchronously
+
+    let pingTask4 =
+        actor.Ping ()
+        |> Async.AwaitTask
+        |> Async.Ignore
+
+    actor.SendAsync TestMessages.A CancellationToken.None
+    |> Async.AwaitTask
+    |> Async.RunSynchronously
+
+    [pingTask1; pingTask2; pingTask3; pingTask4]
+    |> List.toSeq
+    |> Async.Parallel
+    |> Async.Ignore
+    |> Async.RunSynchronously
+
+    Async.Sleep 1000
+    |> Async.RunSynchronously
 
     Assert.True received
