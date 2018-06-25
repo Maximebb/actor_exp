@@ -52,15 +52,6 @@ module Actor =
             | true, mess -> drain channelToReadFrom (mess :: acc)
             | false, _ -> acc
 
-        let handleControl state message =
-            match message with
-            | Stop tcs -> 
-                tcs.SetResult( true )
-                Choice3Of3 (ExecutionResult<'state>.Stopped state)
-            | Ping tcs -> 
-                tcs.SetResult( true )
-                Choice1Of3 state
-
         let rec foldControl state (messages : ControlMessages list) =
             match messages with
             | [] -> Choice1Of3 state
