@@ -12,4 +12,8 @@
     <PackageReference Include="System.Threading.Channels" Version="4.5.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Actor.Common\Actor.Common.fsproj" />
+  </ItemGroup>
+
 </Project>

@@ -3,7 +3,7 @@ namespace StateFullActor
 open System.Threading
 open System.Threading.Tasks
 open System
-open System.Net.NetworkInformation
+open Actor.Common
 
 exception ActorDisposedException of obj
 exception ActorStoppedException of obj
@@ -13,13 +13,6 @@ type ExecutionResult<'state> =
 | Disposed of 'state
 | Stopped of 'state
 | Crashed of Exception
-
-type IActor<'message> =
-    abstract member SendAsync   : 'message -> CancellationToken -> Task
-    abstract member Send        : 'message -> bool
-    abstract member Ping        : unit -> Task<bool>
-    abstract member Stop        : unit -> Task
-    abstract member Dispose     : unit -> unit
 
 module Actor =
     open System.Threading.Channels
