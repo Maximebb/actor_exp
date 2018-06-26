@@ -11,6 +11,8 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "StatelessActor", "Statesles
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Actor.Common", "Actor.Common\Actor.Common.fsproj", "{1872B988-9AA1-427C-92F4-1EB5346C2629}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "StatelessActor.Infrastructure", "StatelessActor.Infrastructure\StatelessActor.Infrastructure.fsproj", "{FAB5AE82-9BE1-491F-9416-44594E810A1D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{1872B988-9AA1-427C-92F4-1EB5346C2629}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1872B988-9AA1-427C-92F4-1EB5346C2629}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1872B988-9AA1-427C-92F4-1EB5346C2629}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FAB5AE82-9BE1-491F-9416-44594E810A1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAB5AE82-9BE1-491F-9416-44594E810A1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAB5AE82-9BE1-491F-9416-44594E810A1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAB5AE82-9BE1-491F-9416-44594E810A1D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

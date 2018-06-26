@@ -114,7 +114,7 @@ module Actor =
             lifetimeToken.Cancel()
             lifetimeToken.Dispose()
 
-        interface IActor<'message> with
+        interface IStatefulActor<'message> with
             member x.SendAsync (m : 'message) (cancellation : CancellationToken) =
                 let unionToken = CancellationTokenSource.CreateLinkedTokenSource( lifetimeToken.Token, cancellation )
                 incomingChannel.Writer.WriteAsync( m, unionToken.Token ).AsTask()
@@ -140,4 +140,4 @@ module Actor =
         let actor = new ActorImpl<'message,'state> (handler, supervisorChannel)
         actor.BootStrap initialState
         |> Async.Start
-        actor :> IActor<'message>
+        actor :> IStatefulActor<'message>

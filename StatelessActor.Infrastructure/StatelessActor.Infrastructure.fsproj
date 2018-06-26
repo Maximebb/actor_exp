@@ -5,16 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Actor.Stateless.fs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Threading.Channels" Version="4.5.0" />
+    <Compile Include="AzureStateProvider.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Actor.Common\Actor.Common.fsproj" />
-    <ProjectReference Include="..\StatelessActor.Infrastructure\StatelessActor.Infrastructure.fsproj" />
   </ItemGroup>
 
 </Project>
