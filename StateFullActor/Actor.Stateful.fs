@@ -1,13 +1,9 @@
-namespace StateFullActor
+namespace StatefulActor
 
 open System.Threading
 open System.Threading.Tasks
 open System
 open Actor.Common
-
-exception ActorDisposedException of obj
-exception ActorStoppedException of obj
-exception ActorCrashedException of string
 
 type ExecutionResult<'state> =
 | Disposed of 'state
@@ -25,7 +21,7 @@ module Actor =
     | Control
     | Incoming
 
-    type Actor<'message, 'state> (handler : 'state -> 'message -> 'state, supervisorChannel : ChannelWriter<ExecutionResult<'state>>) =
+    type ActorImpl<'message, 'state> internal (handler : 'state -> 'message -> 'state, supervisorChannel : ChannelWriter<ExecutionResult<'state>>) =
         let controlChannel = Channel.CreateUnbounded<ControlMessages> (  new UnboundedChannelOptions( SingleReader = true, AllowSynchronousContinuations = true ) )
         let incomingChannel = Channel.CreateUnbounded<'message> (  new UnboundedChannelOptions( SingleReader = true, AllowSynchronousContinuations = true ) )
         let lifetimeToken = new CancellationTokenSource ()
@@ -52,10 +48,10 @@ module Actor =
                 match mess with
                 | Stop tcs -> 
                     tcs.SetResult( true )
-                    Choice3Of3 (ExecutionResult<'state>.Stopped state)
+                    Choice3Of3 (ExecutionResult<'state>.Stopped state) //Stop right away
                 | Ping tcs -> 
                     tcs.SetResult( true )
-                    foldControl state tail
+                    foldControl state tail //Continue processing control batch
 
                 
         
@@ -82,7 +78,7 @@ module Actor =
                             seq { yield controlTask; yield messageTask }
                             |> Async.Choice
                     
-                        //drain channel in a batch
+                        // TODO: Maybe drain all channels instead of one type at a time. Not affecting performance unless high input rate of control messages
                         match (messageTypeToRead |> Option.get) with
                         | MessageType.Incoming -> 
                             let nextState = (drain incomingChannel []) |> foldOnMessages state
@@ -90,12 +86,8 @@ module Actor =
                         | MessageType.Control -> 
                             return (drain controlChannel []) |> foldControl state
                     with
-                        | ActorStoppedException(_) as e -> return Choice2Of3 e
-                        | :? TaskCanceledException -> 
-                            if disposed 
-                            then return Choice2Of3 (ActorDisposedException state) 
-                            else return Choice2Of3 (ActorCrashedException "Task was cancelled with actor being disposed")
-                        | _ -> return Choice2Of3 (ActorCrashedException "Actor crashed while reading from it's channel")
+                        | :? TaskCanceledException -> return Choice3Of3 (ExecutionResult.Disposed state)
+                        | e -> return Choice2Of3 e
                 }
 
                 match result with
@@ -109,10 +101,7 @@ module Actor =
                     try
                         return! Run initialState
                     with
-                    | ActorStoppedException (state) -> return ExecutionResult<'state>.Stopped (state :?> 'state)
-                    | ActorDisposedException (state) -> return ExecutionResult<'state>.Disposed (state :?> 'state) //Dynamic cast is evil, but who's going to put me in prison for that?
-                    | :? ActorCrashedException as e -> return ExecutionResult<'state>.Crashed e
-                    | e -> return ExecutionResult<'state>.Crashed e
+                    | e -> return ExecutionResult.Crashed e
                 }
                 let timeout = new CancellationTokenSource ()
                 timeout.CancelAfter( TimeSpan.FromSeconds( 30000. ) ) //writing to a channel should never take long, but make sure we are not stuck on this after execution
@@ -147,9 +136,8 @@ module Actor =
                 x.DisposeInternal ()
 
                 
-
     let StartNew<'message,'state> (handler : 'state -> 'message -> 'state) (supervisorChannel : ChannelWriter<ExecutionResult<'state>>) (initialState : 'state) =
-        let actor = new Actor<'message,'state> (handler, supervisorChannel)
+        let actor = new ActorImpl<'message,'state> (handler, supervisorChannel)
         actor.BootStrap initialState
         |> Async.Start
         actor :> IActor<'message>

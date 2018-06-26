@@ -1,7 +1,7 @@
 module Tests
 
 open Xunit
-open StateFullActor
+open StatefulActor
 open System.Threading.Channels
 open System.Threading
 
@@ -20,7 +20,7 @@ let internal initActorWithHandler handler =
     let supervisor = Channel.CreateUnbounded<ExecutionResult<TestState>> (  new UnboundedChannelOptions( SingleReader = false, AllowSynchronousContinuations = true ) )    
     let actor = 
         TestState.Empty
-        |> StateFullActor.Actor.StartNew handler supervisor.Writer
+        |> StatefulActor.Actor.StartNew handler supervisor.Writer
     (actor, supervisor)
 
 [<Fact>]
