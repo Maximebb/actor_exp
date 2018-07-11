@@ -5,7 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="AzureStateProvider.fs" />
+    <Compile Include="ConnectedStateProvider.fs" />
+    <Compile Include="InMemoryStateProvider.fs" />
   </ItemGroup>
 
   <ItemGroup>
