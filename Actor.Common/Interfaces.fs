@@ -1,17 +1,19 @@
 namespace Actor.Common
 
+open System
 open System.Threading
 open System.Threading.Tasks
 
 type IStatefulActor<'message> =
+    inherit IDisposable
     abstract member SendAsync   : 'message[] -> CancellationToken -> Task
     abstract member Send        : 'message[] -> bool
     abstract member Ping        : unit -> Task<bool>
     abstract member Stop        : unit -> Task
-    abstract member Dispose     : unit -> unit
 
 /// Represent the interaction layer with the actor. 
 type IMessageProc<'identity, 'message, 'state> =
+    inherit IDisposable
     abstract member SendAsync   : 'identity -> 'message[] -> CancellationToken -> Task
 
 type IStateProvider<'identity,'state>  =

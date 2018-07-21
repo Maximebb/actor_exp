@@ -130,6 +130,8 @@ module Actor =
                 |> Async.AwaitTask
                 |> Async.Start
                 tcs.Task
+        
+        interface IDisposable with
             member x.Dispose () =
                 x.DisposeInternal ()
 
