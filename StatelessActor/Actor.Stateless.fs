@@ -13,7 +13,7 @@ open System.Diagnostics
 module OptimisticConcurrency =
     open Microsoft.Extensions.Logging.Abstractions
 
-    type MessageProcImpl<'identity, 'message, 'state> internal (handler : 'state -> 'message -> Task<'state>, stateProvider : IStateProvider<'identity, 'state>, logger : ILogger option) =
+    type MessageProcImpl<'identity, 'message, 'state when 'identity : comparison> internal (handler : 'state -> 'message -> Task<'state>, stateProvider : IStateProvider<'identity, 'state>, logger : ILogger option) =
         let supervisor = Channel.CreateUnbounded<ExecutionResult<int>> (  new UnboundedChannelOptions( SingleReader = false, AllowSynchronousContinuations = true ) ) 
         let m_logger = logger |> Option.defaultWith (fun () -> NullLoggerFactory.Instance.CreateLogger( "Null" ))
         let lifetimeToken = new CancellationTokenSource ()
@@ -56,5 +56,5 @@ module OptimisticConcurrency =
             member x.Dispose () =
                 m_actor.Dispose ()
 
-    let Create<'identity, 'message, 'state> (handler, stateProvider, logger) =
-        new MessageProcImpl<'identity, 'message, 'state> (handler, stateProvider, logger)
+    let Create<'identity, 'message, 'state when 'identity : comparison> (handler, stateProvider, logger) =
+        new MessageProcImpl<'identity, 'message, 'state> (handler, stateProvider, logger) :> IMessageProc<'identity, 'message, 'state>

@@ -4,18 +4,19 @@ open Actor.Common
 open System.Threading
 open System.Threading.Tasks
 
-//module ConnectedStateProvider =
-
-
 module InMemoryStateProvider =
+    open System.Collections.Generic
 
-    type ProviderImpl<'identity, 'state when 'identity : comparison> () =
-        let mutable state = Map.empty<'identity, 'state>
+    type ProviderImpl<'identity, 'state when 'identity : comparison> internal (dict : Dictionary<'identity, 'state>) =
+        let state = dict
         interface IStateProvider<'identity,'state> with 
             member x.SaveStateAsync cancelToken id s =
-                state <- state.Add( id, s )
+                state.[id] <- s
                 Task.CompletedTask
             member x.GetStateAsync cancelToken id =
-                match state.TryFind id with
-                | Some s -> Task.FromResult s
-                | None -> failwith (sprintf "State not found for id: %O" id) 
+                match state.TryGetValue id with
+                | true, s -> Task.FromResult s
+                | _ -> failwith (sprintf "State not found for id: %O" id) 
+
+    let CreateNew<'identity, 'state when 'identity : comparison> (dict : Dictionary<'identity, 'state>) =
+        new ProviderImpl<'identity, 'state> (dict)
