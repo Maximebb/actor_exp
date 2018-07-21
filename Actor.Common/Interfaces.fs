@@ -16,6 +16,9 @@ type IMessageProc<'identity, 'message, 'state> =
     inherit IDisposable
     abstract member SendAsync   : 'identity -> 'message[] -> CancellationToken -> Task
 
+exception DirtyWriteExn
+
 type IStateProvider<'identity,'state>  =
     abstract member GetStateAsync   : CancellationToken -> 'identity -> Task<'state>
+    /// Has to throw DirtyWriteExn to signify a retry case. Any other exn will fail the transaction
     abstract member SaveStateAsync  : CancellationToken -> 'identity -> 'state -> Task
