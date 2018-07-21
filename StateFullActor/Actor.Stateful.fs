@@ -21,18 +21,11 @@ module Actor =
     | Control
     | Incoming
 
-    type ActorImpl<'message, 'state> internal (handler : 'state -> 'message -> 'state, supervisorChannel : ChannelWriter<ExecutionResult<'state>>) =
+    type ActorImpl<'message, 'state> internal (handler : 'state -> 'message[] -> 'state, supervisorChannel : ChannelWriter<ExecutionResult<'state>>) =
         let controlChannel = Channel.CreateUnbounded<ControlMessages> (  new UnboundedChannelOptions( SingleReader = true, AllowSynchronousContinuations = true ) )
         let incomingChannel = Channel.CreateUnbounded<'message> (  new UnboundedChannelOptions( SingleReader = true, AllowSynchronousContinuations = true ) )
         let lifetimeToken = new CancellationTokenSource ()
         let mutable disposed = false
-
-        //fold state on a batch of message
-        let rec foldOnMessages (currState : 'state) (messages : 'message list) =
-            match messages with
-            | [] -> currState
-            | [ mess ] -> handler currState mess
-            | mess :: tail -> tail |> foldOnMessages (handler currState mess)
 
         //drain message from channel reader
         let rec drain (channelToReadFrom : Channel<'m>) (acc : 'm list) =
@@ -81,7 +74,7 @@ module Actor =
                         // TODO: Maybe drain all channels instead of one type at a time. Not affecting performance unless high input rate of control messages
                         match (messageTypeToRead |> Option.get) with
                         | MessageType.Incoming -> 
-                            let nextState = (drain incomingChannel []) |> foldOnMessages state
+                            let nextState = (drain incomingChannel []) |> List.toArray |> handler state
                             return Choice1Of3 nextState
                         | MessageType.Control -> 
                             return (drain controlChannel []) |> foldControl state
@@ -115,10 +108,15 @@ module Actor =
             lifetimeToken.Dispose()
 
         interface IStatefulActor<'message> with
-            member x.SendAsync (m : 'message) (cancellation : CancellationToken) =
+            member x.SendAsync (m : 'message[]) (cancellation : CancellationToken) =
                 let unionToken = CancellationTokenSource.CreateLinkedTokenSource( lifetimeToken.Token, cancellation )
-                incomingChannel.Writer.WriteAsync( m, unionToken.Token ).AsTask()
-            member x.Send (m : 'message) = incomingChannel.Writer.TryWrite( m )
+                m 
+                |> Array.map (fun item -> incomingChannel.Writer.WriteAsync( item, unionToken.Token ).AsTask() |> Async.AwaitTask )
+                |> Async.Parallel
+                |> Async.Ignore
+                |> Async.StartAsTask
+                :> Task
+            member x.Send (m : 'message[]) = m |> Array.map (fun item -> incomingChannel.Writer.TryWrite( item ) ) |> Array.forall id
             member x.Stop () = (async {
                     let tcs = new TaskCompletionSource<bool>()
                     do! controlChannel.Writer.WriteAsync( ControlMessages.Stop tcs ).AsTask()
@@ -136,7 +134,7 @@ module Actor =
                 x.DisposeInternal ()
 
                 
-    let StartNew<'message,'state> (handler : 'state -> 'message -> 'state) (supervisorChannel : ChannelWriter<ExecutionResult<'state>>) (initialState : 'state) =
+    let StartNew<'message,'state> (handler : 'state -> 'message[] -> 'state) (supervisorChannel : ChannelWriter<ExecutionResult<'state>>) (initialState : 'state) =
         let actor = new ActorImpl<'message,'state> (handler, supervisorChannel)
         actor.BootStrap initialState
         |> Async.Start

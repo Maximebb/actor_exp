@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Actor.Common\Actor.Common.fsproj" />
+    <ProjectReference Include="..\StateFullActor\StatefulActor.fsproj" />
     <ProjectReference Include="..\StatelessActor.Infrastructure\StatelessActor.Infrastructure.fsproj" />
   </ItemGroup>
 

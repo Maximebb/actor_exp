@@ -17,22 +17,32 @@ type internal TestState =
     static member Empty = { Received = [] } : TestState
 
 let internal initActorWithHandler handler =
-    let supervisor = Channel.CreateUnbounded<ExecutionResult<TestState>> (  new UnboundedChannelOptions( SingleReader = false, AllowSynchronousContinuations = true ) )    
+    let supervisor = Channel.CreateUnbounded<ExecutionResult<TestState>> (  new UnboundedChannelOptions( SingleReader = false, AllowSynchronousContinuations = true ) )  
+    
     let actor = 
         TestState.Empty
         |> StatefulActor.Actor.StartNew handler supervisor.Writer
     (actor, supervisor)
 
+let constructHandler handleOne state0 messages =
+    let listified = messages |> Array.toList
+    let rec internalHandler state lMess =
+        match lMess with
+        | [] -> state
+        | head :: tail -> internalHandler (handleOne state head) tail 
+    internalHandler state0 listified
+
 [<Fact>]
 let ``Actor receives message`` () =
     let mutable received = false
-    let handler (state : TestState) (message : TestMessages) =
+
+    let handleOne (state : TestState) (message : TestMessages) =
         received <- true
         { state with Received = message :: state.Received }
-    
-    let (actor, _) = initActorWithHandler handler
 
-    actor.SendAsync TestMessages.A CancellationToken.None
+    let (actor, _) = initActorWithHandler (constructHandler handleOne)
+
+    actor.SendAsync [| TestMessages.A |] CancellationToken.None
     |> Async.AwaitTask
     |> Async.RunSynchronously
 
@@ -48,7 +58,7 @@ let ``Actor receives multiple messages`` () =
     let mutable receivedA = false
     let mutable receivedB = false
     let mutable receivedC = false
-    let handler (state : TestState) (message : TestMessages) =
+    let handleOne (state : TestState) (message : TestMessages) =
         match message with
         | A -> receivedA <- true
         | B -> receivedB <- true
@@ -56,17 +66,17 @@ let ``Actor receives multiple messages`` () =
         | _ -> receivedWrongMessage <- true
         { state with Received = message :: state.Received }
     
-    let (actor, supervisor) = initActorWithHandler handler
+    let (actor, supervisor) = initActorWithHandler (constructHandler handleOne) 
 
-    actor.SendAsync TestMessages.A CancellationToken.None
+    actor.SendAsync [| TestMessages.A |] CancellationToken.None
     |> Async.AwaitTask
     |> Async.RunSynchronously
 
-    actor.SendAsync TestMessages.B CancellationToken.None
+    actor.SendAsync [| TestMessages.B |] CancellationToken.None
     |> Async.AwaitTask
     |> Async.RunSynchronously
 
-    actor.SendAsync TestMessages.C CancellationToken.None
+    actor.SendAsync [| TestMessages.C |] CancellationToken.None
     |> Async.AwaitTask
     |> Async.RunSynchronously
 
@@ -81,13 +91,13 @@ let ``Actor receives multiple messages`` () =
 [<Fact>]
 let ``Actor notifies supervisor of execution result after processing - Disposed`` () =
     let mutable received = false
-    let handler (state : TestState) (message : TestMessages) =
+    let handleOne (state : TestState) (message : TestMessages) =
         received <- true
         { state with Received = message :: state.Received }
     
-    let (actor, supervisor) = initActorWithHandler handler
+    let (actor, supervisor) = initActorWithHandler (constructHandler handleOne)
 
-    actor.SendAsync TestMessages.A CancellationToken.None
+    actor.SendAsync [| TestMessages.A |] CancellationToken.None
     |> Async.AwaitTask
     |> Async.RunSynchronously
 
@@ -110,16 +120,16 @@ let ``Actor notifies supervisor of execution result after processing - Disposed`
 [<Fact>]
 let ``Actor notifies supervisor of execution result after processing - Crashed`` () =
     let mutable received = false
-    let handler (state : TestState) (message : TestMessages) =
+    let handleOne (state : TestState) (message : TestMessages) =
         received <- true
         Async.Sleep 1000
         |> Async.RunSynchronously
         failwith "Test"
         { state with Received = message :: state.Received }
     
-    let (actor, supervisor) = initActorWithHandler handler
+    let (actor, supervisor) = initActorWithHandler (constructHandler handleOne)
 
-    actor.SendAsync TestMessages.A CancellationToken.None
+    actor.SendAsync [| TestMessages.A |] CancellationToken.None
     |> Async.AwaitTask
     |> Async.RunSynchronously
 
@@ -141,14 +151,14 @@ let ``Actor notifies supervisor of execution result after processing - Crashed``
 [<Fact>]
 let ``Actor notifies supervisor of execution result after processing - Stopped`` () =
     let mutable received = false
-    let handler (state : TestState) (message : TestMessages) =
+    let handleOne (state : TestState) (message : TestMessages) =
         received <- true
         { state with Received = message :: state.Received }
     
-    let (actor, supervisor) = initActorWithHandler handler
+    let (actor, supervisor) = initActorWithHandler (constructHandler handleOne)
 
     let t =
-        actor.SendAsync TestMessages.A CancellationToken.None
+        actor.SendAsync [| TestMessages.A |] CancellationToken.None
         |> Async.AwaitTask
     Async.RunSynchronously( t, 1000 )
 
@@ -173,14 +183,14 @@ let ``Actor notifies supervisor of execution result after processing - Stopped``
 [<Fact>]
 let ``Actor ping`` () =
     let mutable received = false
-    let handler (state : TestState) (message : TestMessages) =
+    let handleOne (state : TestState) (message : TestMessages) =
         
         received <- true
         { state with Received = message :: state.Received }
     
-    let (actor, _) = initActorWithHandler handler
+    let (actor, _) = initActorWithHandler (constructHandler handleOne)
 
-    actor.SendAsync TestMessages.A CancellationToken.None
+    actor.SendAsync [| TestMessages.A |] CancellationToken.None
     |> Async.AwaitTask
     |> Async.RunSynchronously
     
@@ -195,22 +205,22 @@ let ``Actor ping`` () =
 let ``Actor ping - multiple messages sent and ping responds in between messages`` () =
     let mutable received = false
     let mutable amountReceived = 0
-    let handler (state : TestState) (message : TestMessages) =
+    let handleOne (state : TestState) (message : TestMessages) =
         amountReceived <- amountReceived + 1
         if amountReceived = 7 then received <- true
         { state with Received = message :: state.Received }
     
-    let (actor, _) = initActorWithHandler handler
+    let (actor, _) = initActorWithHandler (constructHandler handleOne)
 
-    actor.SendAsync TestMessages.A CancellationToken.None
+    actor.SendAsync [| TestMessages.A |] CancellationToken.None
     |> Async.AwaitTask
     |> Async.RunSynchronously
 
-    actor.SendAsync TestMessages.A CancellationToken.None
+    actor.SendAsync [| TestMessages.A |] CancellationToken.None
     |> Async.AwaitTask
     |> Async.RunSynchronously
 
-    actor.SendAsync TestMessages.A CancellationToken.None
+    actor.SendAsync [| TestMessages.A |] CancellationToken.None
     |> Async.AwaitTask
     |> Async.RunSynchronously
 
@@ -219,7 +229,7 @@ let ``Actor ping - multiple messages sent and ping responds in between messages`
         |> Async.AwaitTask
         |> Async.Ignore
 
-    actor.SendAsync TestMessages.A CancellationToken.None
+    actor.SendAsync [| TestMessages.A |] CancellationToken.None
     |> Async.AwaitTask
     |> Async.RunSynchronously
 
@@ -228,7 +238,7 @@ let ``Actor ping - multiple messages sent and ping responds in between messages`
         |> Async.AwaitTask
         |> Async.Ignore
 
-    actor.SendAsync TestMessages.A CancellationToken.None
+    actor.SendAsync [| TestMessages.A |] CancellationToken.None
     |> Async.AwaitTask
     |> Async.RunSynchronously
 
@@ -236,7 +246,7 @@ let ``Actor ping - multiple messages sent and ping responds in between messages`
         actor.Ping ()
         |> Async.AwaitTask
         |> Async.Ignore
-    actor.SendAsync TestMessages.A CancellationToken.None
+    actor.SendAsync [| TestMessages.A |] CancellationToken.None
     |> Async.AwaitTask
     |> Async.RunSynchronously
 
@@ -245,7 +255,7 @@ let ``Actor ping - multiple messages sent and ping responds in between messages`
         |> Async.AwaitTask
         |> Async.Ignore
 
-    actor.SendAsync TestMessages.A CancellationToken.None
+    actor.SendAsync [| TestMessages.A |] CancellationToken.None
     |> Async.AwaitTask
     |> Async.RunSynchronously
 
