@@ -21,7 +21,7 @@ module Actor =
     | Control
     | Incoming
 
-    type ActorImpl<'message, 'state> internal (handler : 'state -> 'message[] -> 'state, supervisorChannel : ChannelWriter<ExecutionResult<'state>>) =
+    type ActorImpl<'message, 'state> internal (handler : 'state -> 'message[] -> Task<'state>, supervisorChannel : ChannelWriter<ExecutionResult<'state>>) =
         let controlChannel = Channel.CreateUnbounded<ControlMessages> (  new UnboundedChannelOptions( SingleReader = true, AllowSynchronousContinuations = true ) )
         let incomingChannel = Channel.CreateUnbounded<'message> (  new UnboundedChannelOptions( SingleReader = true, AllowSynchronousContinuations = true ) )
         let lifetimeToken = new CancellationTokenSource ()
@@ -74,7 +74,7 @@ module Actor =
                         // TODO: Maybe drain all channels instead of one type at a time. Not affecting performance unless high input rate of control messages
                         match (messageTypeToRead |> Option.get) with
                         | MessageType.Incoming -> 
-                            let nextState = (drain incomingChannel []) |> List.toArray |> handler state
+                            let! nextState = (drain incomingChannel []) |> List.toArray |> handler state |> Async.AwaitTask
                             return Choice1Of3 nextState
                         | MessageType.Control -> 
                             return (drain controlChannel []) |> foldControl state
@@ -136,7 +136,7 @@ module Actor =
                 x.DisposeInternal ()
 
                 
-    let StartNew<'message,'state> (handler : 'state -> 'message[] -> 'state) (supervisorChannel : ChannelWriter<ExecutionResult<'state>>) (initialState : 'state) =
+    let StartNew<'message,'state> (handler : 'state -> 'message[] -> Task<'state>) (supervisorChannel : ChannelWriter<ExecutionResult<'state>>) (initialState : 'state) =
         let actor = new ActorImpl<'message,'state> (handler, supervisorChannel)
         actor.BootStrap initialState
         |> Async.Start

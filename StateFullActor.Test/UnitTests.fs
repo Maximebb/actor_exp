@@ -4,6 +4,7 @@ open Xunit
 open StatefulActor
 open System.Threading.Channels
 open System.Threading
+open System.Threading.Tasks
 
 type internal TestMessages =
     | A
@@ -28,7 +29,7 @@ let constructHandler handleOne state0 messages =
     let listified = messages |> Array.toList
     let rec internalHandler state lMess =
         match lMess with
-        | [] -> state
+        | [] -> Task.FromResult state
         | head :: tail -> internalHandler (handleOne state head) tail 
     internalHandler state0 listified
 

@@ -13,9 +13,9 @@ module OptimisticConcurrency =
         let supervisor = Channel.CreateUnbounded<ExecutionResult<int>> (  new UnboundedChannelOptions( SingleReader = false, AllowSynchronousContinuations = true ) ) 
         
         let internalHandler state0 messages =
-            state0 + 1
+            Task.FromResult (state0 + 1)
 
-        //do the internal handling here
+        
                 
         let internalActor = StatefulActor.Actor.StartNew<('identity * 'message), int> internalHandler supervisor.Writer 0
 
@@ -25,6 +25,10 @@ module OptimisticConcurrency =
                     messages
                     |> Array.map (fun m -> (id, m))
                 internalActor.SendAsync identifiedBatch cancel
+
+        interface IDisposable with 
+            member x.Dispose () =
+                internalActor.Dispose ()
 
     let Create<'identity, 'message, 'state> (handler, stateProvider) =
         new MessageProcImpl<'identity, 'message, 'state> (handler, stateProvider)
