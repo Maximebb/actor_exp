@@ -18,39 +18,44 @@ module OptimisticConcurrency =
         let m_logger = logger |> Option.defaultWith (fun () -> NullLoggerFactory.Instance.CreateLogger( "Null" ))
         let lifetimeToken = new CancellationTokenSource ()
 
-        let transact (id, message) = async {
+        let rec foldOnAll (state0 : 'state) (messages : 'message list) = async {
+            match messages with
+            | [] -> return state0
+            | head :: tail -> 
+                let! state1 = handler state0 head |> Async.AwaitTask
+                return! foldOnAll state1 tail
+        }
+
+        let transact (id : 'identity) (messages : 'message list) = async {
             let! stateI = stateProvider.GetStateAsync lifetimeToken.Token id |> Async.AwaitTask
-            let! stateF = handler stateI message |> Async.AwaitTask
+            let! stateF = foldOnAll stateI messages
             do! stateProvider.SaveStateAsync lifetimeToken.Token id stateF |> Async.AwaitTask
         }
 
-        let rec handle1 (id, message) = async {
+        let rec handle1 (id : 'identity) (messages : 'message list) = async {
             try
-                do! transact (id, message)
+                do! transact id messages
             with
-                | :? DirtyWriteExn -> return! handle1 (id, message)
+                | :? DirtyWriteExn -> return! handle1 id messages
                 | e -> m_logger.LogError( "Failed to process message for {0}, Ex: {1}", id, e.Message )
         }
             
-        let internalHandler state0 messages = async {
+        let internalHandler _ (idMessages : ('identity * 'message[])[]) = async {
             let sw = new Stopwatch ()
-            for message in messages do
+            for (id, batch) in idMessages do
                 sw.Start ()
-                do! handle1 message
+                do! handle1 (id) (batch |> Array.toList)
                 sw.Stop ()
-                m_logger.LogInformation( "Took {0}ms to process message for {1}", sw.ElapsedMilliseconds, fst message)
+                m_logger.LogInformation( "Took {0}ms to process {2} messages for {1}", sw.ElapsedMilliseconds, id)
                 sw.Reset ()
-            return state0
+            return 1
         }
                 
-        let m_actor = StatefulActor.Actor.StartNew<('identity * 'message), int> (fun state0 messages -> (internalHandler state0 messages) |> Async.StartAsTask) supervisor.Writer 0
+        let m_actor = StatefulActor.Actor.StartNew<('identity * 'message[]), int> (fun state0 messages -> (internalHandler state0 messages) |> Async.StartAsTask) supervisor.Writer 0
         
         interface IMessageProc<'identity, 'message, 'state> with
             member x.SendAsync (id : 'identity) (messages : 'message[]) cancel =
-                let identifiedBatch = 
-                    messages
-                    |> Array.map (fun m -> (id, m))
-                m_actor.SendAsync identifiedBatch cancel
+                m_actor.SendAsync [| (id, messages) |] cancel
 
         interface IDisposable with 
             member x.Dispose () =
