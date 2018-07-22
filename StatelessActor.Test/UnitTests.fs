@@ -54,4 +54,43 @@ let ``Stateless actor receives message`` () =
     |> Async.RunSynchronously
 
     Assert.True received
-    Assert.True (stateStore.ContainsKey( id0 ) && stateStore.[id0].Received.Length = 1) 
+    Assert.True (stateStore.ContainsKey( id0 ) && stateStore.[id0].Received.Length = 1)
+
+[<Fact>]
+let ``Stateless actor A receives message, actor B receives another message`` () =
+    let mutable received = false
+
+    let handleOne (state : TestState) (message : TestMessages) =
+        received <- true
+        Task.FromResult { state with Received = message :: state.Received }
+    
+    let stateStore = new Dictionary<Guid, TestState>()
+    let messageProc = initStatelessActorWithHandler handleOne (constructStateProvider stateStore)
+
+    let idA = Guid.NewGuid ()
+    stateStore.Add( idA, TestState.Empty)
+
+    let idB = Guid.NewGuid()
+    stateStore.Add( idB, TestState.Empty)
+
+    //A
+    messageProc.SendAsync idA [| TestMessages.A |] CancellationToken.None
+    |> Async.AwaitTask
+    |> Async.RunSynchronously
+
+    Async.Sleep 1000
+    |> Async.RunSynchronously
+
+    Assert.True received
+    Assert.True (stateStore.ContainsKey( idA ) && stateStore.[idA].Received.Length = 1)
+
+    //B
+    messageProc.SendAsync idB [| TestMessages.B |] CancellationToken.None
+    |> Async.AwaitTask
+    |> Async.RunSynchronously
+
+    Async.Sleep 1000
+    |> Async.RunSynchronously
+
+    Assert.True received
+    Assert.True (stateStore.ContainsKey( idB ) && stateStore.[idB].Received.Length = 1)
