@@ -32,6 +32,11 @@ module OptimisticConcurrency =
             do! stateProvider.SaveStateAsync lifetimeToken.Token id stateF |> Async.AwaitTask
         }
 
+        // Max: If the transaction fails too often or takes too much time:
+        // 1) should there be a strategy for breaking down the batch into smaller size?
+        // 2) is there an upper limit for the acceptable number of retries?
+        // 3) should there be a mechanism to deadletter the messages in case of too many failures?
+        // 4) should we identify ids who often get dirty writes? this could indicate that a specific actor is seeing too much activity spread thin over the horizontal scale
         let rec handle1 (id : 'identity) (messages : 'message list) = async {
             try
                 do! transact id messages
@@ -54,6 +59,8 @@ module OptimisticConcurrency =
         let m_actor = StatefulActor.Actor.StartNew<('identity * 'message[]), int> (fun state0 messages -> (internalHandler state0 messages) |> Async.StartAsTask) supervisor.Writer 0
         
         interface IMessageProc<'identity, 'message, 'state> with
+            /// Implementation notes: will process the entirety of the messages batch for the id actor. This is important as it will affect the
+            /// throughput due to optimistic concurrency principles.
             member x.SendAsync (id : 'identity) (messages : 'message[]) cancel =
                 m_actor.SendAsync [| (id, messages) |] cancel
 
