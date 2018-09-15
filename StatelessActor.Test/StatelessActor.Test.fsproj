@@ -1,12 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
 
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="InMemoryStateProvider.fs" />
     <Compile Include="UnitTests.fs" />
   </ItemGroup>
 
@@ -19,7 +20,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Actor.Common\Actor.Common.fsproj" />
-    <ProjectReference Include="..\StatelessActor.Infrastructure\StatelessActor.Infrastructure.fsproj" />
     <ProjectReference Include="..\StatelessActor\StatelessActor.fsproj" />
   </ItemGroup>
 

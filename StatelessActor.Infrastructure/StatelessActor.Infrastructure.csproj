@@ -1,15 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Actor.Stateful.fs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Threading.Channels" Version="4.5.0" />
+    <PackageReference Include="Microsoft.Azure.DocumentDB.Core" Version="1.9.1" />
   </ItemGroup>
 
   <ItemGroup>

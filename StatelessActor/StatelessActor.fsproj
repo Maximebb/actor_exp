@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,7 +16,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Actor.Common\Actor.Common.fsproj" />
     <ProjectReference Include="..\StateFullActor\StatefulActor.fsproj" />
-    <ProjectReference Include="..\StatelessActor.Infrastructure\StatelessActor.Infrastructure.fsproj" />
   </ItemGroup>
 
 </Project>
