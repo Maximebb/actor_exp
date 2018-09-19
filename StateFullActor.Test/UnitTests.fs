@@ -114,7 +114,7 @@ let ``Actor notifies supervisor of execution result after processing - Disposed`
 
     Assert.True received
     Assert.True ( match executionResult with
-                  | Disposed finalState -> if finalState.Received.Length = 1 then true else false
+                  | Disposed finalState -> finalState.Received.Length = 1
                   | _ -> false )
 
 
