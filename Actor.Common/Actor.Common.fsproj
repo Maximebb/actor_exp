@@ -8,4 +8,8 @@
     <Compile Include="Interfaces.fs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Update="System.ValueTuple" Version="4.5.0" />
+  </ItemGroup>
+
 </Project>

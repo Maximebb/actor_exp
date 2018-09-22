@@ -18,7 +18,10 @@ type IMessageProc<'identity, 'message, 'state> =
 
 exception DirtyWriteExn
 
-type IStateProvider<'identity,'state when 'identity : comparison>  =
+type IVersionableState =
+    abstract member ETag : string
+
+type IStateProvider<'identity,'state when 'identity : comparison> =
     abstract member GetStateAsync   : CancellationToken -> 'identity -> Task<'state>
     /// Has to throw DirtyWriteExn to signify a retry case. Any other exn will fail the transaction
     abstract member SaveStateAsync  : CancellationToken -> 'identity -> 'state -> Task

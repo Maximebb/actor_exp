@@ -10,6 +10,7 @@ type internal TestMessages =
     | A
     | B
     | C
+    | D
 
 type internal TestState =
     {
