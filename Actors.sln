@@ -21,6 +21,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "StatelessTests", "Stateless
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "StatefulTests", "StatefulTests\StatefulTests.fsproj", "{B3EB7AD9-50F3-4810-942E-8D43EA288D8F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StateProviderTests", "StateProviderTests\StateProviderTests.csproj", "{D8B0778C-8C76-4848-BF1B-F80DA1EE9B20}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{B3EB7AD9-50F3-4810-942E-8D43EA288D8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B3EB7AD9-50F3-4810-942E-8D43EA288D8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B3EB7AD9-50F3-4810-942E-8D43EA288D8F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D8B0778C-8C76-4848-BF1B-F80DA1EE9B20}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8B0778C-8C76-4848-BF1B-F80DA1EE9B20}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8B0778C-8C76-4848-BF1B-F80DA1EE9B20}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8B0778C-8C76-4848-BF1B-F80DA1EE9B20}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -61,6 +67,7 @@ Global
 		{F785DD59-FD7B-4840-8139-946769DAA06F} = {41E95911-97C8-4D8B-9635-EBC5019260C5}
 		{48DE6F4D-1651-46D8-A22D-83EEFED96A3A} = {70547110-10EE-44E8-80EE-DC41D2CF3AE4}
 		{B3EB7AD9-50F3-4810-942E-8D43EA288D8F} = {70547110-10EE-44E8-80EE-DC41D2CF3AE4}
+		{D8B0778C-8C76-4848-BF1B-F80DA1EE9B20} = {70547110-10EE-44E8-80EE-DC41D2CF3AE4}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {27B1A0B6-27D6-4262-B5D5-2E8AEE784C7C}

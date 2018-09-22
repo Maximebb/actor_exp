@@ -100,7 +100,7 @@ namespace StatelessActor.Infrastructure
         /// </summary>
         /// <param name="id">Identity of the state document</param>
         /// <returns></returns>
-        internal abstract Uri GetUriForId( identity id );
+        public abstract Uri GetUriForId( identity id );
 
     }
 }
