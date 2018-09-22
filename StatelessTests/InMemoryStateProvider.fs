@@ -12,7 +12,7 @@ module InMemoryStateProvider =
         interface IStateProvider<'identity,'state> with 
             member x.SaveStateAsync cancelToken id s =
                 state.[id] <- s
-                Task.CompletedTask
+                Task.FromResult(s)
             member x.GetStateAsync cancelToken id =
                 match state.TryGetValue id with
                 | true, s -> Task.FromResult s

@@ -29,7 +29,7 @@ module OptimisticConcurrency =
         let transact (id : 'identity) (messages : 'message list) = async {
             let! stateI = stateProvider.GetStateAsync lifetimeToken.Token id |> Async.AwaitTask
             let! stateF = foldOnAll stateI messages
-            do! stateProvider.SaveStateAsync lifetimeToken.Token id stateF |> Async.AwaitTask
+            do! stateProvider.SaveStateAsync lifetimeToken.Token id stateF |> Async.AwaitTask |> Async.Ignore
         }
 
         // Max: If the transaction fails too often or takes too much time:
