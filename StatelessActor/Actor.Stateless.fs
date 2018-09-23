@@ -37,11 +37,19 @@ module OptimisticConcurrency =
         // 2) is there an upper limit for the acceptable number of retries?
         // 3) should there be a mechanism to deadletter the messages in case of too many failures?
         // 4) should we identify ids who often get dirty writes? this could indicate that a specific actor is seeing too much activity spread thin over the horizontal scale
-        let rec handle1 (id : 'identity) (messages : 'message list) = async {
+        let rec handle1 (id : 'identity) (messages : 'message list) (retries : int) = async {
             try
+                let sw = new Stopwatch ()
+                let transactionId = Guid.NewGuid()
+                let trace = sprintf "Transact %s, id %s, attempt %d" (transactionId.ToString()) (id.ToString()) retries
+                m_logger.LogInformation( trace )
+                sw.Start()
                 do! transact id messages
+                sw.Stop()
+                let perfTrace = sprintf "Transact %s attempt %d took %dms" (transactionId.ToString()) (retries) sw.ElapsedMilliseconds
+                m_logger.LogInformation( perfTrace )
             with
-                | :? DirtyWriteExn -> return! handle1 id messages
+                | :? DirtyWriteExn -> return! handle1 id messages (retries + 1)
                 | e -> m_logger.LogError( "Failed to process message for {0}, Ex: {1}", id, e.Message )
         }
             
@@ -49,9 +57,10 @@ module OptimisticConcurrency =
             let sw = new Stopwatch ()
             for (id, batch) in idMessages do
                 sw.Start ()
-                do! handle1 (id) (batch |> Array.toList)
+                do! handle1 (id) (batch |> Array.toList) 0
                 sw.Stop ()
-                m_logger.LogInformation( "Took {0}ms to process {2} messages for {1}", sw.ElapsedMilliseconds, id)
+                let perfTrace = sprintf "Took %dms to process %d messages for %s" sw.ElapsedMilliseconds (batch.Length) (id.ToString()) 
+                m_logger.LogInformation( perfTrace )
                 sw.Reset ()
             return 1
         }
