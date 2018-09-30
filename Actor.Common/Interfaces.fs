@@ -19,7 +19,7 @@ type IMessageProc<'identity, 'message, 'state> =
 exception DirtyWriteExn
 
 type IVersionableState =
-    abstract member ETag : string
+    abstract member Version : string
 
 type IStateProvider<'identity,'state when 'identity : comparison> =
     abstract member GetStateAsync   : CancellationToken -> 'identity -> Task<'state>

@@ -3,46 +3,71 @@ using System.Collections.Generic;
 using System.Text;
 using Actor.Common;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using StatelessActor.Infrastructure;
 
 namespace StateProviderTests
 {
+    /// <summary>
+    /// State is basically just the version with a text
+    /// </summary>
     public class TestState : VersionableStateBase
     {
+        [JsonProperty(PropertyName = "Val")]
+        public string Val { get; set; }
 
-        public TestState(string etag) : base()
+        public TestState()
         {
-            this.ETag = etag;
         }
     }
 
-    public class TestIdentity : IComparable
+    /// <summary>
+    /// Simple wrapper for a guid
+    /// </summary>
+    public class TestIdentity : IdentityBase, IComparable
     {
-        public Guid Id { get; set; }
+        public TestIdentity()
+        {
+            this.Id = Guid.NewGuid();
+        }
 
         public int CompareTo( object obj )
         {
-            throw new NotImplementedException();
+            if ( obj is TestIdentity id2 )
+            {
+                return Id.CompareTo( id2.Id );
+            }
+            else
+            {
+                throw new ArgumentException( "Cannot compare to object not of type TestIdentity" );
+            }
+        }
+
+        public override string ToString()
+        {
+            return Id.ToString();
         }
     }
 
+    /// <summary>
+    /// Test implementation of the state provider
+    /// </summary>
     public class TestStateProviderImpl : ConnectedStateProviderBase<TestIdentity, TestState>
     {
-        public const string BaseAddress = "Test";
+        public const string DatabaseId = "States";
+        public const string BaseContainer = "Test";
 
-        private TestStateProviderImpl( string endpoint, string primarykey, ILogger logger ) : base( endpoint, primarykey, logger )
-        {
-
-        }
-
-        public override Uri GetUriForId( TestIdentity id )
-        {
-            return new Uri($"{BaseAddress}{id.Id.ToString()}");
-        }
-
+        private TestStateProviderImpl( string endpoint, string primarykey, ILogger logger )
+            : base( endpoint, primarykey, DatabaseId, BaseContainer, logger ) { }
+        
         public static IStateProvider<TestIdentity, TestState> CreateNew( string endpoint, string primarykey, ILogger logger )
         {
             return new TestStateProviderImpl( endpoint, primarykey, logger );
+        }
+
+        public override string DocumentId( TestIdentity id )
+        {
+            return id.Id.ToString();
         }
     }
 }
